@@ -17,6 +17,14 @@ espresso is used to minimise the truth tables for the pseudo-boolean
 constraints used to encode the adders. You can obtain espresso from
 <ftp://ftp.cs.man.ac.uk/pub/amulet/balsa/other-software/espresso-ab-1.0.tar.gz>.
 
+> wget ftp://ftp.cs.man.ac.uk/pub/amulet/balsa/other-software/espresso-ab-1.0.tar.gz
+> tar xzvf espresso-ab-1.0.tar.gz
+> cd espresso-ab-1.0
+> ./configure
+> make
+> cd ..
+> export PATH="$PWD/espresso-ab-1.0/src:$PATH"
+
 To generate a CNF instance encoding a preimage attack on the full SHA-1
 algorithm, run:
 
