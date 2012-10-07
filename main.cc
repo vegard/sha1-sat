@@ -1,5 +1,5 @@
 /*
- * sha1-cnf -- SAT instance generator for SHA-1
+ * sha1-sat -- SAT instance generator for SHA-1
  * Copyright (C) 2011-2012  Vegard Nossum <vegard.nossum@gmail.com>
  *
  * This program is free software: you can redistribute it and/or modify
