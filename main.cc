@@ -558,11 +558,8 @@ static void rotl(int r[32], int x[32], unsigned int n)
 class sha1 {
 public:
 	int w[80][32];
-	int h0_z[32];
-	int h1_z[32];
-	int h2_z[32];
-	int h3_z[32];
-	int h4_z[32];
+	int h_in[5][32];
+	int h_out[5][32];
 
 	int a[85][32];
 
@@ -579,11 +576,17 @@ public:
 		for (unsigned int i = 16; i < nr_rounds; ++i)
 			new_vars(format("w$[$]", name, i), wt[i], 32);
 
-		new_vars(format("h$0_z", name), h0_z, 32);
-		new_vars(format("h$1_z", name), h1_z, 32);
-		new_vars(format("h$2_z", name), h2_z, 32);
-		new_vars(format("h$3_z", name), h3_z, 32);
-		new_vars(format("h$4_z", name), h4_z, 32);
+		new_vars(format("h$_in0", name), h_in[0], 32);
+		new_vars(format("h$_in1", name), h_in[1], 32);
+		new_vars(format("h$_in2", name), h_in[2], 32);
+		new_vars(format("h$_in3", name), h_in[3], 32);
+		new_vars(format("h$_in4", name), h_in[4], 32);
+
+		new_vars(format("h$_out0", name), h_out[0], 32);
+		new_vars(format("h$_out1", name), h_out[1], 32);
+		new_vars(format("h$_out2", name), h_out[2], 32);
+		new_vars(format("h$_out3", name), h_out[3], 32);
+		new_vars(format("h$_out4", name), h_out[4], 32);
 
 		for (unsigned int i = 0; i < nr_rounds; ++i)
 			new_vars(format("a[$]", i + 5), a[i + 5], 32);
@@ -600,31 +603,17 @@ public:
 		new_constant("k[2]", k[2], 0x8f1bbcdc);
 		new_constant("k[3]", k[3], 0xca62c1d6);
 
-		int h0_a[32];
-		new_vars(format("h$0_a", name), h0_a, 32);
-		constant32(h0_a, 0x67452301);
+		constant32(h_in[0], 0x67452301);
+		constant32(h_in[1], 0xefcdab89);
+		constant32(h_in[2], 0x98badcfe);
+		constant32(h_in[3], 0x10325476);
+		constant32(h_in[4], 0xc3d2e1f0);
 
-		int h1_a[32];
-		new_vars(format("h$1_a", name), h1_a, 32);
-		constant32(h1_a, 0xefcdab89);
-
-		int h2_a[32];
-		new_vars(format("h$2_a", name), h2_a, 32);
-		constant32(h2_a, 0x98badcfe);
-
-		int h3_a[32];
-		new_vars(format("h$3_a", name), h3_a, 32);
-		constant32(h3_a, 0x10325476);
-
-		int h4_a[32];
-		new_vars(format("h$4_a", name), h4_a, 32);
-		constant32(h4_a, 0xc3d2e1f0);
-
-		rotl(a[4], h0_a, 32 - 0);
-		rotl(a[3], h1_a, 32 - 0);
-		rotl(a[2], h2_a, 32 - 30);
-		rotl(a[1], h3_a, 32 - 30);
-		rotl(a[0], h4_a, 32 - 30);
+		rotl(a[4], h_in[0], 32 - 0);
+		rotl(a[3], h_in[1], 32 - 0);
+		rotl(a[2], h_in[2], 32 - 30);
+		rotl(a[1], h_in[3], 32 - 30);
+		rotl(a[0], h_in[4], 32 - 30);
 
 		for (unsigned int i = 0; i < nr_rounds; ++i) {
 			int prev_a[32];
@@ -685,11 +674,11 @@ public:
 		int e[32];
 		rotl(e, a[nr_rounds + 0], 30);
 
-		add2("hz", h0_z, h0_a, a[nr_rounds + 4]);
-		add2("hz", h1_z, h1_a, a[nr_rounds + 3]);
-		add2("hz", h2_z, h2_a, c);
-		add2("hz", h3_z, h3_a, d);
-		add2("hz", h4_z, h4_a, e);
+		add2("h_out", h_out[0], h_in[0], a[nr_rounds + 4]);
+		add2("h_out", h_out[1], h_in[1], a[nr_rounds + 3]);
+		add2("h_out", h_out[2], h_in[2], c);
+		add2("h_out", h_out[3], h_in[3], d);
+		add2("h_out", h_out[4], h_in[4], e);
 	}
 
 };
@@ -787,23 +776,7 @@ static void preimage()
 		unsigned int r = hash_bits[i] / 32;
 		unsigned int s = hash_bits[i] % 32;
 
-		switch (r) {
-		case 0:
-			constant(f.h0_z[s], (h[r] >> s) & 1);
-			break;
-		case 1:
-			constant(f.h1_z[s], (h[r] >> s) & 1);
-			break;
-		case 2:
-			constant(f.h2_z[s], (h[r] >> s) & 1);
-			break;
-		case 3:
-			constant(f.h3_z[s], (h[r] >> s) & 1);
-			break;
-		case 4:
-			constant(f.h4_z[s], (h[r] >> s) & 1);
-			break;
-		}
+		constant(f.h_out[r][s], (h[r] >> s) & 1);
 	}
 }
 
@@ -857,23 +830,7 @@ static void second_preimage()
 		unsigned int r = hash_bits[i] / 32;
 		unsigned int s = hash_bits[i] % 32;
 
-		switch (r) {
-		case 0:
-			constant(f.h0_z[s], (h[r] >> s) & 1);
-			break;
-		case 1:
-			constant(f.h1_z[s], (h[r] >> s) & 1);
-			break;
-		case 2:
-			constant(f.h2_z[s], (h[r] >> s) & 1);
-			break;
-		case 3:
-			constant(f.h3_z[s], (h[r] >> s) & 1);
-			break;
-		case 4:
-			constant(f.h4_z[s], (h[r] >> s) & 1);
-			break;
-		}
+		constant(f.h_out[r][s], (h[r] >> s) & 1);
 	}
 }
 
@@ -914,23 +871,7 @@ static void collision()
 		unsigned int r = hash_bits[i] / 32;
 		unsigned int s = hash_bits[i] % 32;
 
-		switch (r) {
-		case 0:
-			eq(&f.h0_z[s], &g.h0_z[s], 1);
-			break;
-		case 1:
-			eq(&f.h1_z[s], &g.h1_z[s], 1);
-			break;
-		case 2:
-			eq(&f.h2_z[s], &g.h2_z[s], 1);
-			break;
-		case 3:
-			eq(&f.h3_z[s], &g.h3_z[s], 1);
-			break;
-		case 4:
-			eq(&f.h4_z[s], &g.h4_z[s], 1);
-			break;
-		}
+		eq(&f.h_out[r][s], &g.h_out[r][s], 1);
 	}
 }
 
