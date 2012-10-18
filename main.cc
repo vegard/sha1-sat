@@ -42,6 +42,7 @@ extern "C" {
 
 
 /* Instance options */
+static std::string config_attack = "preimage";
 static unsigned int config_nr_rounds = 80;
 static unsigned int config_nr_message_bits = 0;
 static unsigned int config_nr_hash_bits = 160;
@@ -806,20 +807,131 @@ static void preimage()
 	}
 }
 
+/* The second preimage differs from the first preimage by flipping one of
+ * the message bits. */
+static void second_preimage()
+{
+	sha1 f(config_nr_rounds, "");
+
+	/* Generate a known-valid (messsage, hash)-pair */
+	uint32_t w[80];
+	for (unsigned int i = 0; i < 16; ++i)
+		w[i] = lrand48();
+
+	uint32_t h[5];
+	sha1_forward(config_nr_rounds, w, h);
+
+	/* Fix message bits */
+	comment(format("Fix $ message bits", config_nr_message_bits));
+
+	std::vector<unsigned int> message_bits(512);
+	for (unsigned int i = 0; i < 512; ++i)
+		message_bits[i] = i;
+
+	std::random_shuffle(message_bits.begin(), message_bits.end());
+
+	/* Flip the first bit */
+	if (config_nr_message_bits > 0) {
+		unsigned int r = message_bits[0] / 32;
+		unsigned int s = message_bits[0] % 32;
+
+		constant(f.w[r][s], !((w[r] >> s) & 1));
+	}
+
+	for (unsigned int i = 1; i < config_nr_message_bits; ++i) {
+		unsigned int r = message_bits[i] / 32;
+		unsigned int s = message_bits[i] % 32;
+
+		constant(f.w[r][s], (w[r] >> s) & 1);
+	}
+
+	/* Fix hash bits */
+	comment(format("Fix $ hash bits", config_nr_hash_bits));
+
+	std::vector<unsigned int> hash_bits(160);
+	for (unsigned int i = 0; i < 160; ++i)
+		hash_bits[i] = i;
+
+	std::random_shuffle(hash_bits.begin(), hash_bits.end());
+	for (unsigned int i = 0; i < config_nr_hash_bits; ++i) {
+		unsigned int r = hash_bits[i] / 32;
+		unsigned int s = hash_bits[i] % 32;
+
+		switch (r) {
+		case 0:
+			constant(f.h0_z[s], (h[r] >> s) & 1);
+			break;
+		case 1:
+			constant(f.h1_z[s], (h[r] >> s) & 1);
+			break;
+		case 2:
+			constant(f.h2_z[s], (h[r] >> s) & 1);
+			break;
+		case 3:
+			constant(f.h3_z[s], (h[r] >> s) & 1);
+			break;
+		case 4:
+			constant(f.h4_z[s], (h[r] >> s) & 1);
+			break;
+		}
+	}
+}
+
 static void collision()
 {
 	sha1 f(config_nr_rounds, "0");
 	sha1 g(config_nr_rounds, "1");
 
-	/* Set H = H' */
-	eq(f.h0_z, g.h0_z);
-	eq(f.h1_z, g.h1_z);
-	eq(f.h2_z, g.h2_z);
-	eq(f.h3_z, g.h3_z);
-	eq(f.h4_z, g.h4_z);
+	if (config_nr_message_bits > 0)
+		std::cerr << "warning: collision attacks do not use fixed message bits\n";
 
-	/* Make m != m' */
-	neq(f.w[0], g.w[0], 1);
+	/* Fix message bits (set m != m') */
+	comment(format("Fix $ message bits", config_nr_message_bits));
+
+	std::vector<unsigned int> message_bits(512);
+	for (unsigned int i = 0; i < 512; ++i)
+		message_bits[i] = i;
+
+	std::random_shuffle(message_bits.begin(), message_bits.end());
+
+	/* Flip some random bit */
+	{
+		unsigned int r = message_bits[0] / 32;
+		unsigned int s = message_bits[0] % 32;
+
+		neq(&f.w[r][s], &g.w[r][s], 1);
+	}
+
+	/* Fix hash bits (set H = H') */
+	comment(format("Fix $ hash bits", config_nr_hash_bits));
+
+	std::vector<unsigned int> hash_bits(160);
+	for (unsigned int i = 0; i < 160; ++i)
+		hash_bits[i] = i;
+
+	std::random_shuffle(hash_bits.begin(), hash_bits.end());
+	for (unsigned int i = 0; i < config_nr_hash_bits; ++i) {
+		unsigned int r = hash_bits[i] / 32;
+		unsigned int s = hash_bits[i] % 32;
+
+		switch (r) {
+		case 0:
+			eq(&f.h0_z[s], &g.h0_z[s], 1);
+			break;
+		case 1:
+			eq(&f.h1_z[s], &g.h1_z[s], 1);
+			break;
+		case 2:
+			eq(&f.h2_z[s], &g.h2_z[s], 1);
+			break;
+		case 3:
+			eq(&f.h3_z[s], &g.h3_z[s], 1);
+			break;
+		case 4:
+			eq(&f.h4_z[s], &g.h4_z[s], 1);
+			break;
+		}
+	}
 }
 
 int main(int argc, char *argv[])
@@ -838,6 +950,7 @@ int main(int argc, char *argv[])
 		options_description instance_options("Instance options");
 		instance_options.add_options()
 			("seed", value<unsigned long>(&seed), "Random number seed")
+			("attack", value<std::string>(), "Attack type (preimage, second-preimage, collision)")
 			("rounds", value<unsigned int>(&config_nr_rounds), "Number of rounds (16-80)")
 			("message-bits", value<unsigned int>(&config_nr_message_bits), "Number of fixed message bits (0-512)")
 			("hash-bits", value<unsigned int>(&config_nr_hash_bits), "Number of fixed hash bits (0-160)")
@@ -882,6 +995,18 @@ int main(int argc, char *argv[])
 		if (map.count("help")) {
 			std::cout << all_options;
 			return 0;
+		}
+
+		if (map.count("attack") == 1) {
+			config_attack = map["attack"].as<std::string>();
+		} else if (map.count("attack") > 1) {
+			std::cerr << "Can only specify --attack once\n";
+			return EXIT_FAILURE;
+		}
+
+		if (config_attack != "preimage" && config_attack != "second-preimage" && config_attack != "collision") {
+			std::cerr << "Invalid --attack\n";
+			return EXIT_FAILURE;
 		}
 
 		if (map.count("cnf"))
@@ -950,7 +1075,13 @@ int main(int argc, char *argv[])
 	srand(seed);
 	srand48(rand());
 
-	preimage();
+	if (config_attack == "preimage") {
+		preimage();
+	} else if (config_attack == "second-preimage") {
+		second_preimage();
+	} else if (config_attack == "collision") {
+		collision();
+	}	
 
 	if (config_cnf) {
 		std::cout
