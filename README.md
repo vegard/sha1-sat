@@ -38,6 +38,17 @@ The program can also generate OPB instances (pseudo-boolean constraints) if
 you specify --opb instead of --cnf.
 
 
+# Verifying solutions
+
+To verify that the solution output by the solver is actually correct, run:
+
+> perl verify-preimage instance.cnf solution | ./verify-preimage
+
+Here, 'solution' is the file output e.g. by minisat or the 'v'-line for
+other popular solvers like CryptoMiniSAT or PrecoSAT. The program returns
+an error code of 0 if and only if the solution is correct.
+
+
 # About
 
 I developed this program as part of my master thesis. Please e-mail comments,
