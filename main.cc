@@ -885,7 +885,7 @@ int main(int argc, char *argv[])
 
 		options_description options("Options");
 		options.add_options()
-			("help", "Display this information")
+			("help,h", "Display this information")
 		;
 
 		options_description instance_options("Instance options");
