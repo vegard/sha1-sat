@@ -50,6 +50,7 @@ static unsigned int config_nr_hash_bits = 160;
 /* Format options */
 static bool config_cnf = false;
 static bool config_opb = false;
+static bool config_sat2011 = false;
 
 /* CNF options */
 static bool config_use_xor_clauses = false;
@@ -63,10 +64,31 @@ static bool config_use_compact_adders = false;
 static std::ostringstream cnf;
 static std::ostringstream opb;
 
+static std::vector<std::string> comments;
+
 static void comment(std::string str)
 {
-	cnf << format("c $\n", str);
-	opb << format("* $\n", str);
+	/* For strict SAT2011-style CNFs, we have to output all comments
+	 * before the 'p' line. So save them in a vector and output them
+	 * later in that case. It does mess up the file somewhat (since
+	 * you can't really tell what set of clauses each comment cor-
+	 * responds to), but at least you can use the saved command line
+	 * to run the program again without the SAT2011 option.*/
+
+	std::string c;
+	if (config_cnf)
+		c = format("c $\n", str);
+	else if (config_opb)
+		c = format("* $\n", str);
+
+	if (config_sat2011)
+		comments.push_back(c);
+	else {
+		if (config_cnf)
+			cnf << c;
+		else if (config_opb)
+			opb << c;
+	}
 }
 
 static int nr_variables = 0;
@@ -901,6 +923,7 @@ int main(int argc, char *argv[])
 		format_options.add_options()
 			("cnf", "Generate CNF")
 			("opb", "Generate OPB")
+			("sat2011", "Strictly follow the rules of the SAT competition 2011")
 			("tseitin-adders", "Use Tseitin encoding of the circuit representation of adders");
 		;
 
@@ -955,6 +978,9 @@ int main(int argc, char *argv[])
 
 		if (map.count("opb"))
 			config_opb = true;
+
+		if (map.count("sat2011"))
+			config_sat2011 = true;
 
 		if (map.count("tseitin-adders"))
 			config_use_tseitin_adders = true;
@@ -1023,6 +1049,9 @@ int main(int argc, char *argv[])
 	} else if (config_attack == "collision") {
 		collision();
 	}	
+
+	for (std::string &c: comments)
+		std::cout << c;
 
 	if (config_cnf) {
 		std::cout
