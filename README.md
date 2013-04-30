@@ -28,11 +28,11 @@ constraints used to encode the adders. You can obtain espresso from
 To generate a CNF instance encoding a preimage attack on the full SHA-1
 algorithm, run:
 
-> ./main --cnf --rounds=80 --hash-bits=160 > instance.cnf
+> ./sha1-sat --cnf --rounds=80 --hash-bits=160 > instance.cnf
 
 To look at the possible options, run:
 
-> ./main --help
+> ./sha1-sat --help
 
 The program can also generate OPB instances (pseudo-boolean constraints) if
 you specify --opb instead of --cnf.
