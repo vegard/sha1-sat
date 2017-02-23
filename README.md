@@ -51,8 +51,17 @@ an error code of 0 if and only if the solution is correct.
 
 # About
 
-I developed this program as part of my master thesis. Please e-mail comments,
-suggestions, etc. to me at <vegard.nossum@gmail.com>.
+I developed this program as part of my master thesis. You can find it here:
+<https://www.duo.uio.no/handle/10852/34912>.
+
+The program creates the smallest and easiest-to-solve instances that I know
+about; in particular, it uses a novel encoding of adders which is described
+in more detail in my short benchmark description "Instance generator for
+encoding preimage, second-preimage, and collision attacks on SHA-1", which
+you can find on page 119 of the SAT Competition 2013 proceedings:
+<https://tuhat.helsinki.fi/portal/files/27982690/sc2013_proceedings.pdf>.
+
+Please e-mail comments, suggestions, etc. to me at <vegard.nossum@gmail.com>.
 
 If you use the program in your research, please make a note of this in your
 acknowledgements and let me know about your paper/thesis/etc.!
