@@ -741,7 +741,7 @@ static void preimage()
 {
 	sha1 f(config_nr_rounds, "");
 
-	/* Generate a known-valid (messsage, hash)-pair */
+	/* Generate a known-valid (message, hash)-pair */
 	uint32_t w[80];
 	for (unsigned int i = 0; i < 16; ++i)
 		w[i] = lrand48();
@@ -786,7 +786,7 @@ static void second_preimage()
 {
 	sha1 f(config_nr_rounds, "");
 
-	/* Generate a known-valid (messsage, hash)-pair */
+	/* Generate a known-valid (message, hash)-pair */
 	uint32_t w[80];
 	for (unsigned int i = 0; i < 16; ++i)
 		w[i] = lrand48();
