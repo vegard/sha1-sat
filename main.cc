@@ -94,8 +94,8 @@ static void new_vars(std::string label, int x[], unsigned int n, bool decision_v
 
 static void constant(int r, bool value)
 {
-	cnf << format("$$ 0\n", value ? "" : "-", r);
-	opb << format("1 x$ = $;\n", r, value ? 1 : 0);
+	cnf << format("$$ 0\n", (r < 0) ^ value ? "" : "-", r);
+	opb << format("1 x$ = $;\n", r, (r < 0) ^ value ? 1 : 0);
 
 	nr_clauses += 1;
 	nr_constraints += 1;
