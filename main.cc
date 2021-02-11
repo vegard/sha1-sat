@@ -298,18 +298,15 @@ static void halfadder(const std::vector<int> &lhs, const std::vector<int> &rhs)
 		}
 
 		for (std::vector<int> &c: clauses) {
+			std::vector<int> real_clause;
+
 			for (int i: c) {
 				int j = abs(i) - 1;
 				int var = j < n ? lhs[j] : rhs[m - 1 - (j - n)];
-				if (i < 0)
-					cnf << format("$ ", -var);
-				else
-					cnf << format("$ ", var);
+				real_clause.push_back(i < 0 ? -var : var);
 			}
 
-			cnf << "0\n";
-
-			nr_clauses += 1;
+			clause(real_clause);
 		}
 	}
 
