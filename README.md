@@ -12,19 +12,6 @@ installed. When you do, simply run make.sh:
 
 # Running
 
-Before running, please make sure that the espresso binary is in your PATH.
-espresso is used to minimise the truth tables for the pseudo-boolean
-constraints used to encode the adders. You can obtain espresso from
-<ftp://ftp.cs.man.ac.uk/pub/amulet/balsa/other-software/espresso-ab-1.0.tar.gz>.
-
-    wget ftp://ftp.cs.man.ac.uk/pub/amulet/balsa/other-software/espresso-ab-1.0.tar.gz
-    tar xzvf espresso-ab-1.0.tar.gz
-    cd espresso-ab-1.0
-    ./configure
-    make
-    cd ..
-    export PATH="$PWD/espresso-ab-1.0/src:$PATH"
-
 To generate a CNF instance encoding a preimage attack on the full SHA-1
 algorithm, run:
 
@@ -47,6 +34,30 @@ To verify that the solution output by the solver is actually correct, run:
 Here, 'solution' is the file output e.g. by minisat or the 'v'-line for
 other popular solvers like CryptoMiniSAT or PrecoSAT. The program returns
 an error code of 0 if and only if the solution is correct.
+
+
+# Using espresso
+
+Part of the encoding used by this program is generated using the logic
+minimiser espresso. In particular, it is used to minimise the truth tables
+for half-adders.
+
+You used to be able to obtain espresso from
+<ftp://ftp.cs.man.ac.uk/pub/amulet/balsa/other-software/espresso-ab-1.0.tar.gz>,
+but it is no longer available there. As a consequence, I have decided to
+move the dependency on espresso "out of line" and provide the precomputed
+output tables (see the data/ subdirectory).
+
+If you wish to regenerate these tables (or if you would like to encode them
+for adders with different number of operands), this is how you would use
+espresso:
+
+    wget ftp://ftp.cs.man.ac.uk/pub/amulet/balsa/other-software/espresso-ab-1.0.tar.gz
+    tar xzvf espresso-ab-1.0.tar.gz
+    (cd espresso-ab-1.0 && ./configure && make)
+
+    g++ -std=c++ -o mkhalfadder mkhalfadder.cc
+    ./mkhalfadder 2 2 | espresso-ab-1.0/src/espresso > data/halfadder-2-2.out.txt
 
 
 # About

@@ -1,6 +1,6 @@
 /*
  * sha1-sat -- SAT instance generator for SHA-1
- * Copyright (C) 2011-2012  Vegard Nossum <vegard.nossum@gmail.com>
+ * Copyright (C) 2011-2012, 2021  Vegard Nossum <vegard.nossum@gmail.com>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -198,66 +198,15 @@ static void halfadder(const std::vector<int> &lhs, const std::vector<int> &rhs)
 		if (it != cache.end()) {
 			clauses = it->second;
 		} else {
-			int wfd[2], rfd[2];
+			auto filename = format("data/halfadder-$-$.out.txt", n, m);
 
-			/* pipe(): fd[0] is for reading, fd[1] is for writing */
-
-			if (pipe(wfd) == -1)
-				throw std::runtime_error("pipe() failed");
-
-			if (pipe(rfd) == -1)
-				throw std::runtime_error("pipe() failed");
-
-			pid_t child = fork();
-			if (child == 0) {
-				close(wfd[1]);
-
-				if (dup2(wfd[0], STDIN_FILENO) == -1)
-					throw std::runtime_error("dup() failed");
-
-				close(rfd[0]);
-
-				if (dup2(rfd[1], STDOUT_FILENO) == -1)
-					throw std::runtime_error("dup() failed");
-
-				if (execlp("espresso", "espresso", 0) == -1)
-					throw std::runtime_error("execve() failed");
-
-				exit(EXIT_FAILURE);
-			}
-
-			close(wfd[0]);
-			close(rfd[1]);
-
-			FILE *eout = fdopen(wfd[1], "w");
-			if (!eout)
-				throw std::runtime_error("fdopen() failed");
-
-			FILE *ein = fdopen(rfd[0], "r");
-			if (!ein)
-				throw std::runtime_error("fdopen() failed");
-
-			fprintf(eout, ".i %u\n", n + m);
-			fprintf(eout, ".o 1\n");
-
-			for (unsigned int i = 0; i < 1U << n; ++i) {
-				for (unsigned int j = 0; j < 1U << m; ++j) {
-					for (unsigned int k = n; k--; )
-						fprintf(eout, "%u", 1 - ((i >> k) & 1));
-					for (unsigned int k = m; k--; )
-						fprintf(eout, "%u", 1 - ((j >> k) & 1));
-
-					fprintf(eout, " %u\n", __builtin_popcount(i) != j);
-				}
-			}
-
-			fprintf(eout, ".e\n");
-			fflush(eout);
-			fclose(eout);
+			FILE *in = fopen(filename.c_str(), "r");
+			if (!in)
+				throw std::runtime_error("fopen() failed");
 
 			while (1) {
 				char buf[512];
-				if (!fgets(buf, sizeof(buf), ein))
+				if (!fgets(buf, sizeof(buf), in))
 					break;
 
 				if (!strncmp(buf, ".i", 2))
@@ -280,23 +229,7 @@ static void halfadder(const std::vector<int> &lhs, const std::vector<int> &rhs)
 				clauses.push_back(c);
 			}
 
-			fclose(ein);
-
-			while (true) {
-				int status;
-				pid_t kid = wait(&status);
-				if (kid == -1) {
-					if (errno == ECHILD)
-						break;
-					if (errno == EINTR)
-						continue;
-
-					throw std::runtime_error("wait() failed");
-				}
-
-				if (kid == child)
-					break;
-			}
+			fclose(in);
 
 			cache.insert(std::make_pair(std::make_pair(n, m), clauses));
 		}
