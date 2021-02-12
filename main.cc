@@ -210,8 +210,12 @@ static void halfadder(const std::vector<int> &lhs, const std::vector<int> &rhs)
 
 			pid_t child = fork();
 			if (child == 0) {
+				close(wfd[1]);
+
 				if (dup2(wfd[0], STDIN_FILENO) == -1)
 					throw std::runtime_error("dup() failed");
+
+				close(rfd[0]);
 
 				if (dup2(rfd[1], STDOUT_FILENO) == -1)
 					throw std::runtime_error("dup() failed");
@@ -249,6 +253,7 @@ static void halfadder(const std::vector<int> &lhs, const std::vector<int> &rhs)
 
 			fprintf(eout, ".e\n");
 			fflush(eout);
+			fclose(eout);
 
 			while (1) {
 				char buf[512];
@@ -276,7 +281,6 @@ static void halfadder(const std::vector<int> &lhs, const std::vector<int> &rhs)
 			}
 
 			fclose(ein);
-			fclose(eout);
 
 			while (true) {
 				int status;
